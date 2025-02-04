@@ -1,4 +1,5 @@
 const Media = require('../models/mediaModel');
+const path = require('path');
 
 const MediaController = {
     upload: (req, res) => {
@@ -10,12 +11,29 @@ const MediaController = {
             return res.status(400).send('Nenhum ficheiro foi enviado.');
         }
 
-        Media.create(activityId, file.path, file.mimetype.startsWith('image') ? 'image' : 'video', (error, result) => {
-            if (error) {
-                console.error('Erro ao guardar o ficheiro:', error);  // LOG DO ERRO
-                return res.status(500).send('Erro ao guardar o ficheiro.');
+        // Determina a extensão correta do ficheiro
+        const fileExtension = path.extname(file.originalname);
+        const newFilePath = `${file.path}${fileExtension}`;
+
+        // Renomeia o ficheiro para incluir a extensão correta
+        const fs = require('fs');
+        fs.rename(file.path, newFilePath, (err) => {
+            if (err) {
+                console.error('Erro ao renomear o ficheiro:', err);  // LOG DO ERRO
+                return res.status(500).send('Erro ao processar o ficheiro.');
             }
-            res.status(201).send({ message: 'Ficheiro carregado com sucesso!' });
+
+            // Define o tipo de mídia baseado na extensão
+            const mediaType = file.mimetype.startsWith('image') ? 'image' : 'video';
+
+            // Guarda o caminho completo no banco de dados
+            Media.create(activityId, newFilePath, mediaType, (error, result) => {
+                if (error) {
+                    console.error('Erro ao guardar o ficheiro:', error);  // LOG DO ERRO
+                    return res.status(500).send('Erro ao guardar o ficheiro.');
+                }
+                res.status(201).send({ message: 'Ficheiro carregado com sucesso!', filePath: newFilePath });
+            });
         });
     },
 
