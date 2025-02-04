@@ -2,6 +2,17 @@ const db = require('../config/db');
 const path = require('path');
 
 const Media = {
+    getAllIds: (callback) => {
+        const query = 'SELECT id FROM media_uploads ORDER BY id';
+        db.query(query, (err, results) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                callback(null, results);
+            }
+        });
+    },
+
     getByActivityId: (activityId, callback) => {
         const query = 'SELECT * FROM media_uploads WHERE activity_id = ?';
         db.query(query, [activityId], (err, results) => {
@@ -20,12 +31,12 @@ const Media = {
         });
     },
 
-    create: (activityId, filePath, mediaType, callback) => {
+    create: (id, activityId, filePath, mediaType, callback) => {
         const query = `
-            INSERT INTO media_uploads (activity_id, file_path, media_type) 
-            VALUES (?, ?, ?)
+            INSERT INTO media_uploads (id, activity_id, file_path, media_type) 
+            VALUES (?, ?, ?, ?)
         `;
-        db.query(query, [activityId, filePath, mediaType], (err, results) => {
+        db.query(query, [id, activityId, filePath, mediaType], (err, results) => {
             if (err) {
                 callback(err, null);
             } else {
