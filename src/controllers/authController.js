@@ -7,18 +7,39 @@ const AuthController = {
     register: (req, res) => {
         const { name, email, password } = req.body;
 
-        bcrypt.hash(password, 10, (err, hash) => {
+        // Obter todos os IDs existentes
+        User.getAllIds((err, results) => {
             if (err) {
-                console.error('Erro ao gerar o hash da password:', err);  // LOG DO ERRO
-                return res.status(500).send('Erro ao gerar o hash da password.');
+                console.error('Erro ao buscar IDs existentes:', err);  // LOG DO ERRO
+                return res.status(500).send('Erro ao buscar IDs existentes.');
             }
 
-            User.create(name, email, hash, (error, result) => {
-                if (error) {
-                    console.error('Erro ao registar o utilizador:', error);  // LOG DO ERRO
-                    return res.status(500).send('Erro ao registar o utilizador.');
+            // Encontrar o menor ID disponível
+            let nextId = 1;
+            if (results.length > 0) {
+                for (let i = 0; i < results.length; i++) {
+                    if (results[i].id !== nextId) {
+                        break;
+                    }
+                    nextId++;
                 }
-                res.status(201).send({ message: 'Utilizador registado com sucesso!' });
+            }
+
+            // Hash da password
+            bcrypt.hash(password, 10, (hashErr, hash) => {
+                if (hashErr) {
+                    console.error('Erro ao gerar o hash da password:', hashErr);  // LOG DO ERRO
+                    return res.status(500).send('Erro ao gerar o hash da password.');
+                }
+
+                // Criar o utilizador com o ID correto
+                User.create(nextId, name, email, hash, (createErr, result) => {
+                    if (createErr) {
+                        console.error('Erro ao registar o utilizador:', createErr);  // LOG DO ERRO
+                        return res.status(500).send('Erro ao registar o utilizador.');
+                    }
+                    res.status(201).send({ message: 'Utilizador registado com sucesso!', userId: nextId });
+                });
             });
         });
     },
